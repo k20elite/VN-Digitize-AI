@@ -46,6 +46,6 @@ Hai Endpoint xịn sò đã được mở ra trong hệ thống FastAPI:
 ---
 
 ### Tóm gọn Test/Thử nghiệm
-Các thay đổi đã được xác nhận kiểm chứng (Verified) qua Unit tests (`test_kie_extractor.py`) và tích hợp thử nghiệm (`test_kie.py`) sử dụng Ollama và văn bản ảnh mock. Bóc tách cực kỳ chính xác.
+Các thay đổi đã được xác nhận kiểm chứng (Verified) qua Unit tests (`test_kie_extractor.py`) và tích hợp thử nghiệm (`test_kie.py`) sử dụng Ollama và văn bản ảnh mock.
 
 
