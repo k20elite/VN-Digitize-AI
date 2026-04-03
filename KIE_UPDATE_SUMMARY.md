@@ -5,7 +5,7 @@ Hôm nay, toàn bộ kiến trúc KIE của dự án đã được xây dựng, 
 
 ---
 
-## 🌟 1. Xây dựng Kiến Trúc "Hybrid KIE Extraction" (Kết Hợp Regex & LLM)
+##  1. Xây dựng Kiến Trúc "Hybrid KIE Extraction" (Kết Hợp Regex & LLM)
 Hệ thống KIE đã được thiết kế bằng luồng đa lớp (Multi-stage) để tối ưu độ chính xác và tốc độ:
 - **Ngữ cảnh:** Cần xử lý các văn bản hành chính phức tạp của Việt Nam.
 - **Stage 1 (Regex/Rule-based):** Xây dựng các mẫu pattern ngữ pháp tiếng Việt để quét tự động (Ví dụ: 19 loại văn bản, 15 prefix cơ quan, 4 định dạng số công văn). Luồng Regex mang lại độ tin cậy cực cao (`confidence > 0.9`).
@@ -22,7 +22,7 @@ Mỗi trường trả về `value` (giá trị đoạn chữ) và `confidence` (
 
 ---
 
-## 🛠 2. Nâng cấp Architecture: KIE Template Động (Dynamic Fields)
+##  2. Nâng cấp Architecture: KIE Template Động (Dynamic Fields)
 Thay vì chỉ giới hạn ở 5 trường cứng, hệ thống đã được tái cấu trúc (Refactoring Pydantic Schemas & logic trích xuất) để cho phép bóc tách bất kỳ trường nào theo **Template Đơn vị/Nghiệp vụ**.
 - **Tính năng Template:** Gửi kèm danh sách các `CustomFieldDef` (bao gồm mô tả trường, pattern regex tương ứng).
 - **Cơ chế động (Dynamic Injection):** Tự động tiêm (inject) các luật xuất/nhập, regex tự định nghĩa vào trong cả 2 luồng: Rule-based Stage 1 và Prompt của LLM Stage 2.
@@ -30,14 +30,14 @@ Thay vì chỉ giới hạn ở 5 trường cứng, hệ thống đã được t
 
 ---
 
-## 🚀 3. Triển khai KIE APIs cho Frontend / Client
+##  3. Triển khai KIE APIs cho Frontend / Client
 Hai Endpoint xịn sò đã được mở ra trong hệ thống FastAPI:
 - **`POST /api/v1/kie` (Text-to-KIE):** Dành cho hệ thống đã có file word/text và chỉ cần bóc tách siêu nhanh (Lightweight).
 - **`POST /api/v1/ocr-kie` (Image-to-KIE):** Luồng "All-in-one" cực khỏe. Nhận đầu vào là ảnh văn bản thô, tự động phân luồng → Tiền xử lý → OCR qua Tesseract → Bo khung Bounding Box chữ → Gọi vào Extract KIE từng trang → Tổng hợp thành KIE Metadata cuối cùng cho cả Document.
 
 ---
 
-## 🐛 4. Fix Bug & Tối ưu hoá Tự Động Sửa Lỗi Chính Tả (Trích yếu)
+##  4. Fix Bug & Tối ưu hoá Tự Động Sửa Lỗi Chính Tả (Trích yếu)
 - **Vấn đề phát sinh:** OCR của một số trường dài như `trich_yeu` đôi lúc để lại lỗi chính tả (VD: "uy định" thay vì "Quy định", "chồng" thay vì "chống", "vưem ninh" thay vì "vực an ninh"). LLM đôi khi bị bối rối bởi prompt cung cấp hints và nguyên văn thô OCR dẫn tới tự "chép lại" lỗi chính tả.
 - **Giải pháp dứt điểm:**
   1. Tách hàm `_clean_ocr_text` hoạt động như vòng gác chữ cuối cùng (Fail-safe filtering) nằm thẳng trong bộ phận Merge của `trich_yeu`. Dù xuất phát từ Regex hay LLM, kết quả cuối cùng luôn đi qua bộ lọc từ khóa mạn tính.
