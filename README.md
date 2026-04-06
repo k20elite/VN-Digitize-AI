@@ -1,83 +1,64 @@
-# VN-Digitize-AI
+# VN-Digitize-AI (Document Intelligence Pipeline)
 
-A production-grade, deterministic document preprocessing and OCR engine designed specifically to handle both scanned and camera-captured documents, with specialized support for Vietnamese text.
+A production-grade Document Intelligence and Pre-processing software stack, utilizing state-of-the-art Artificial Intelligence to extract complex Vietnamese administrative and legal documents and produce a finalized archival format.
 
-VN-Digitize-AI transforms raw images into clean, normalized, and OCR-ready files, extracts text using a hybrid Tesseract + VietOCR approach, and provides document summarization capabilities using local LLMs via Ollama. It exposes all these features through a robust FastAPI application.
+## 🚀 Breakthrough Features
 
-## Key Features
+The project has recently undergone a major architectural overhaul, transitioning from a simple PDF parser into a full-scale Document Intelligence System:
 
-- **Advanced Document Preprocessing**:
-  - Automatic cropping and deskewing.
-  - Shadow and yellow stain removal for camera-captured images.
-  - Denoising and adaptive binarization (configurable).
-  - **Red Stamp Preservation**: Specifically detects and preserves red ink elements (like official company/government stamps) which are often lost during normal binarization pipelines.
-  - Blank page detection and automatic removal.
-- **High-Accuracy Vietnamese OCR**:
-  - Utilizes **Tesseract** for robust layout analysis and line bounding box detection.
-  - Feeds cropped bounding boxes into **VietOCR** (`vgg_transformer` model) for state-of-the-art Vietnamese text recognition.
-- **Key Information Extraction (KIE)**:
-  - Extracts structured fields (document number, date, issuing organization, document type, and subject) from Vietnamese administrative/legal documents.
-  - Uses a **hybrid approach**: rule-based regex patterns for high confidence (deterministic) and local LLM context inference as a fallback.
-- **Document Summarization**:
-  - Summarizes extracted OCR text locally, privately, and securely using **Ollama** (defaults to `qwen2.5:3b-instruct`).
-- **Scanner & Barcode Integration**:
-  - Supports direct integration with physical scanners.
-  - Automatically splits document bundles based on detected barcodes.
-- **FastAPI Backend**:
-  - High-performance REST API.
-  - Modular endpoints for preprocessing, OCR, and summarization, or full end-to-end pipelines.
+- **SOTA PaddleOCR Core**: 
+  - The entire pipeline has been routed to PaddleOCR for processing Vietnamese texts (`lang='vi'`). Engineered on a highly optimized RAM Singleton architecture for seamless Batch Processing. Angle classification (`use_angle_cls=True`) eliminates rotation edge-cases.
+- **PP-Structure & Table Extraction**: 
+  - Precisely reads the entire page layout. Automatically transforms Table entities natively into 2D JSON arrays (`{"rows": [[], []...]}`).
+- **Hybrid Key Information Extraction (KIE) with Spatial Mapping**:
+  - Dynamically extracts content via Hybrid Regex + LLM (Ollama). Even better, all extracted text values are "Reverse-Hashed" and anchored back to their exact original red Bounding Boxes (`[x,y,w,h]`), acting as a perfect guide for Frontend highlights.
+- **Auto-Splitting & Smart TOC Generation**:
+  - A smart Regex engine parses Vietnamese document conventions ("Cộng hoà Xã hội...") to deduce where one "Decision" ends and a completely distinct "Lawsuit Application" begins within identical thousand-page PDF scans.
+  - Automatically generates hierarchical nested JSON Trees mapping Chapters to Articles.
+- **Searchable PDF/A Export Generator**:
+  - Going beyond JSON, the system dynamically utilizes ReportLab to render transparent text-layers directly superimposed onto the original scanned imagery (adjusted dynamically for baseline stretching). The export allows users to natively drag-to-highlight/copy text on legacy paper scans.
+- **Post-Processing Validation**:
+  - Logic Validation: Checks date constraints (e.g. intercepts hallucinated "Year 2099" dates) and validates Document Numbers.
+  - NLP Correction: Applies rule-based hotfixes to immediately counter traditional Vietnamese OCR spelling faults.
+  - Architecture ready for YOLO Model injections to target hand-drawn signatures and red corporate stamps.
 
-## Quick Start Demo
+---
 
-You can try the full pipeline (Preprocessing -> OCR -> Summary) using the included `demo.py` script:
+## 🛠️ Installation Sequence
 
-```bash
-python demo.py
-```
-*Make sure to place an `image.png` in the root directory before running or update the script's `input_image_path`. The outputs (cleaned images, OCR JSONs, and text summaries) will be saved in the `data/manual_preprocess/` directory.*
+### 1. Environmental Requirements
+- **Python 3.9+** (Recommended).
+- **Ollama**: Ensure you have pulled a Local LLM Model if you wish to run the LLM-based KIE Summary features (e.g.: `ollama pull qwen2.5:3b-instruct`).
 
-## Installation
-
-### Prerequisites
-1. **Python 3.10+** (Recommended)
-2. **Tesseract OCR**: Needs to be installed on your system. It relies on standard system PATH or default Windows installation paths (`C:/Program Files/Tesseract-OCR/tesseract.exe`).
-3. **Ollama**: (Optional, required only for auto-summarization). Needs to be installed and running locally with the target model pulled (e.g., `ollama run qwen2.5:3b-instruct`).
-
-### Setup
-
-Install the required Python dependencies:
+### 2. Dependency Setup
+We recommend using a virtual environment (venv, conda) to install the core dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-*Note: The first time you run the OCR service, `vietocr` will download its `vgg_transformer` weights.*
+*(Notable dependencies include: fastapi, paddleocr, paddlepaddle, beautifulsoup4, reportlab, and torch. Installing the paddle/ultralytics packages may take some time).*
 
-## Main API Endpoints
+---
 
-Start the API server:
+## 🔗 Core API Endpoints (FastAPI)
+
+Deploy the Server out-of-the-box via `uvicorn`:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-### Core Endpoints
+Access the **Swagger Docs: `http://localhost:8000/docs`** to Test the entire Pipeline Suite:
 
-- **`POST /api/v1/scan-upload`**: Scan documents from a connected physical scanner or upload image files. Automatically separates documents into bundles if barcodes are found.
-- **`POST /api/v1/preprocess`**: Run the configurable preprocessing pipeline on local filesystem images.
-- **`POST /api/v1/upload-preprocess`**: Unified endpoint to upload files and immediately run the preprocessing pipeline (auto-crop, deskew, binarize, etc.).
-- **`POST /api/v1/ocr-fulltext`**: Extract full text from images using the hybrid Tesseract + VietOCR method.
-- **`POST /api/v1/kie`**: Extract structured Key Information (KIE) from raw OCR text.
-- **`POST /api/v1/ocr-kie`**: Full pipeline from image to OCR to KIE. Returns both per-page extraction and merged document-level KIE results.
-- **`POST /api/v1/auto-summary`**: Submit pure text to be summarized by the local Ollama model.
-- **`POST /api/v1/ocr-auto-summary`**: Convenience endpoint for end-to-end OCR extraction followed by immediate summarization.
+1. **`POST /api/v1/preprocess`**: Core image manipulation — Deskews, shadow removal, flattening, and adaptive Binarization with Red Stamp Preservation layers.
+2. **`POST /api/v1/ocr-fulltext`**: Bounding Box extraction (`[x,y,w,h]`) + Character Recognition via PaddleOCR.
+3. **`POST /api/v1/kie`**: Hybrid (Regex + LLM) KIE supporting dynamic templates, now featuring Spatial Bbox Reverse-Mapping.
+4. **`POST /api/v1/split`**: *(Internal API Config)* Splits massive incoming PDF batches into intelligently classified units & delivers TOC.
+5. **`POST /api/v1/export-pdf`**: *(Internal API Config)* Receives Image + OCR lines to yield a perfect PDF/A 2-layer searchable object.
 
-Review the Swagger/OpenAPI documentation at `http://localhost:8000/docs` while the server is running to detailed request options, including how to toggle specific preprocessing features (like `preserve_red_stamp` or `shadow_removal`).
+---
 
-## Testing
-
-The repository includes a comprehensive `pytest` suite testing both API endpoints and core services.
-
-```bash
-pytest
-```
+## 🧭 Roadmap (Next Steps)
+- Segregate the Fast API engine into a dedicated Background Job queue using `Celery` + `Redis` to withstand massive 1000-page document batch loads without falling victim to HTTP Timeouts.
+- Deploy a **Feedback API** pointed at a localized SQLite Database to gather structured Ground-Truth Data adjustments directly from end UI users, establishing a powerful Human-in-the-Loop Incremental Learning architecture.

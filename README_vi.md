@@ -1,83 +1,64 @@
-# VN-Digitize-AI
+# VN-Digitize-AI (Document Intelligence Pipeline)
 
-Một công cụ OCR và tiền xử lý tài liệu cấp sản xuất, có tính xác định cao, được thiết kế chuyên biệt để xử lý cả tài liệu scan và ảnh chụp từ thiết bị di động, hỗ trợ tối ưu việc trích xuất văn bản tiếng Việt.
+Một cấu trúc phần mềm Xử lý Văn bản Hậu kiểm cấp Sản xuất (Production-grade Document Intelligence), sử dụng nền tảng Trí tuệ Nhân tạo hiện đại nhất để bóc tách tài liệu Hành chính - Pháp lý Việt Nam phức tạp và tạo ra định dạng lưu trữ cuối cùng hoàn chỉnh.
 
-VN-Digitize-AI biến đổi các hình ảnh thô thành file sạch sẽ, được chuẩn hóa và sẵn sàng cho OCR. Nó trích xuất văn bản sử dụng phương pháp kết hợp Hybrid giữa Tesseract và VietOCR, đồng thời cung cấp khả năng tự động tóm tắt tài liệu hoàn toàn cục bộ bằng các LLM thông qua Ollama. Toàn bộ tính năng này được kết nối qua một ứng dụng FastAPI mạnh mẽ.
+## 🚀 Các Tính Năng Đột Phá
 
-## Các Tính Năng Chính
+Dự án vừa trải qua đại tu lớn về hệ thống Core AI, đánh dấu sự chuyển mình từ một bộ lọc PDF đơn giản trở thành Hệ thống Số hóa Thông minh toàn cục:
 
-- **Tiền Xử Lý Tài Liệu Nâng Cao**:
-  - Tự động cắt (auto-crop) và căn chỉnh độ lệch (deskew).
-  - Loại bỏ bóng đổ và vùng ố vàng chuyên biệt cho ảnh chụp.
-  - Khử nhiễu và nhị phân hóa thích ứng (có thể tùy chỉnh).
-  - **Bảo Tồn Dấu Mộc Đỏ**: Chuyên phát hiện và giữ lại các chi tiết mực đỏ (như con dấu chính thức của nhà nước/doanh nghiệp Việt Nam), vốn thường bị mất trong các quá trình nhị phân hóa thông thường.
-  - Nhận diện và tự động loại bỏ các trang trắng.
-- **OCR Tiếng Việt Độ Chính Xác Cao**:
-  - Tận dụng **Tesseract** để phân tích bố cục văn bản, xác định bounding box (khung chữ) cho từng dòng cực kì hiệu quả.
-  - Đưa các bounding box đã cắt vào model **VietOCR** (`vgg_transformer`) để thực hiện nhận dạng văn bản tiếng Việt với sai số thấp nhất (SOTA text recognition).
-- **Trích Xuất Thông Tin KIE (Key Information Extraction)**:
-  - Trích xuất thông tin có cấu trúc (số văn bản, ngày ban hành, cơ quan, loại văn bản, trích yếu) từ các văn bản hành chính/pháp lý tiếng Việt.
-  - Sử dụng phương pháp **Hybrid**: ưu tiên nhận diện pattern bằng Regex cho kết quả chính xác cao, kết hợp suy luận dự phòng bằng LLM cho các trường khó.
-- **Tóm Tắt Tài Liệu**:
-  - Tự động tóm tắt văn bản một cách kín đáo, an toàn ngay trên máy tính của bạn bằng **Ollama** (mặc định cấu hình gọi tới model `qwen2.5:3b-instruct`).
-- **Tích Hợp Scanner & Chia Mã Vạch**:
-  - Hỗ trợ kết nối và nhận lệnh trực tiếp từ các máy quét vật lý (scanner).
-  - Tự động chia tách tài liệu thành những văn bản nhỏ riêng biệt dựa trên mã vạch được nhận diện trên trang.
-- **Backend FastAPI**:
-  - API REST hiệu năng cao.
-  - Cung cấp các endpoint riêng lẻ (tiền xử lý, OCR, tóm tắt) hoặc một luồng xử lý toàn trình (end-to-end pipeline).
+- **Hạt nhân PaddleOCR SOTA**: 
+  - Toàn bộ pipeline đã được định tuyến sang PaddleOCR để xử lý tiếng Việt (`lang='vi'`) trên kiến trúc RAM Singleton tối ưu nhất cho hàng chờ (Batch Processing). Không còn lỗi góc cạnh do có góc phân tích `use_angle_cls=True`.
+- **PP-Structure & Table Extraction (Cấu trúc Bảng Biểu)**: 
+  - Đọc chính xác toàn bộ Layout trang giấy. Tự động chuyển đổi các thẻ Bảng biểu (Tables) sang JSON gốc mảng 2 chiều (`{"rows": [[], []...]}`).
+- **Key Information Extraction (KIE) Lai ghép có Mapping Không gian**:
+  - Tách nội dung động bằng Regex + LLM (Ollama). Tuyệt vời hơn, toàn bộ kết quả bóc tách được thuật toán truy vết ngược (Reverse Hash) ghim chặt vào tọa độ đỏ (Bbox `[x,y,w,h]`) nguyên bản trên ảnh, làm kim chỉ nam hoàn hảo cho Frontend.
+- **Tự động Cắt (Auto-Splitting) & Tạo Mục Lục (Smart TOC)**:
+  - Máy mài regex thông minh đọc được quy ước mộc dấu/thể thức văn bản "Cộng hoà Xã hội..." để biết đâu là lúc kết thúc 1 Quyết định và bắt đầu 1 Đơn Khởi Kiện trong tệp Scan gộp hàng nghìn trang.
+  - Generates ra chuẩn JSON cây phân cấp từ cấp độ *Chương* tới *Điều*.
+- **Sinh file Đích Searchable PDF/A**:
+  - Không chỉ dừng ở JSON, hệ thống sử dụng ReportLab render vô hình cực chuẩn xác từng chữ OCR ngay trên nền bức ảnh gốc (có bù co giãn baseline) cho phép copy-paste cực nét trên File xuất để sẵn sàng nhét vào Archive Storage của Doanh nghiệp.
+- **Post-Processing Vệ sinh dữ liệu**:
+  - Logic Validation: Kiểm tra format Số Ký hiệu, Ngày tháng (chặn ngày đến từ năm 2099).
+  - NLP Correction: Nhận thẳng các rules để dập ngay lỗi OCR Tiếng Việt truyền thống (VD: "vưỡn đì" -> "vấn đề").
+  - Chờ kết nối cổng Load Model YOLO cho việc dò tìm Chữ Ký Tay / Dấu Mộc Đỏ.
 
-## Chạy Thử (Demo)
+---
 
-Bạn có thể chạy thử trực tiếp quy trình toàn trình (Tiền xử lý -> OCR -> Tóm tắt) bằng tệp lệnh `demo.py` đã chuẩn bị sẵn:
+## 🛠️ Trình Tự Cài Đặt
 
-```bash
-python demo.py
-```
-*Hãy đảm bảo bạn đã copy file ảnh muốn test và đặt tên `image.png` ở thư mục gốc trước khi chạy, hoặc trỏ đường dẫn biến `input_image_path` tới tệp của bạn trong script. Toàn bộ các kết quả (ảnh đã làm sạch, file OCR `.json` cùng văn bản gốc, và text tóm tắt) sẽ được hệ thống lưu trong thư mục `data/manual_preprocess/`.*
+### 1. Yêu cầu Môi trường
+- **Python 3.9+** (Khuyên dùng).
+- **Ollama**: Đảm bảo đã pull sẵn một mô hình Local LLM nếu bạn muốn chạy KIE LLM-based Summary (vd: `ollama pull qwen2.5:3b-instruct`).
 
-## Cài Đặt
-
-### Yêu Cầu Môi Trường
-1. **Python 3.10+** (Khuyên dùng)
-2. **Tesseract OCR**: Phải được cài sẵn trên hệ thống của bạn và thiết lập ở biến môi trường PATH (trên Windows, app sẽ tự lấy đường dẫn mặc định `C:/Program Files/Tesseract-OCR/tesseract.exe`).
-3. **Ollama**: (Không bắt buộc, chỉ yêu cầu khi chạy tính năng summary). Đảm bảo Ollama đã được khởi chạy trên local với model đã tải sẵn (vd: `ollama run qwen2.5:3b-instruct`).
-
-### Trình Tự Cài Đặt
-
-Cài đặt các gói thư viện Python cần thiết:
+### 2. Thiết lập Môi trường Pytorch & Thư viện
+Bạn nên dùng một môi trường ảo (venv, conda) và cài đặt các phụ thuộc cốt lõi:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-*Lưu ý: Trong quá trình chạy API phần quét OCR lần đầu, model `vietocr` sẽ tự động tải các tham số (vgg_transformer weights) mất chút thời gian.*
+*(Các dependencies nổi cộm gồm: fastapi, paddleocr, paddlepaddle, beautifulsoup4, reportlab và torch. Quá trình tải paddle paddle/ultralytics có thể lâu nếu bạn dùng bản pip thuần GPU)*.
 
-## Các API Endpoint Chính
+---
 
-Bạn có thể khởi động HTTP Server:
+## 🔗 Các API Endpoint Chính (FastAPI)
+
+Bạn có triển khai Server thông qua `uvicorn`:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-### Các Endpoint Cốt Lõi
+Truy cập **Swagger Docs: `http://localhost:8000/docs`** để Test toàn bộ các cổng Pipeline sau:
 
-- **`POST /api/v1/scan-upload`**: Nhận lệnh điều khiển scan từ máy scan kết nối thẳng vào máy tính hoặc upload tệp hình ảnh. File ảnh tự động được chia thành các bó tài liệu (bundle) nếu phần mềm tìm thấy trang chứa mã vạch.
-- **`POST /api/v1/preprocess`**: Thực hiện lệnh tiền xử lý các ảnh đã có sẵn ở file system.
-- **`POST /api/v1/upload-preprocess`**: Endpoint hỗ trợ gộp, cho phép upload tệp và tiền xử lý tức thì (auto-crop, deskew, nhị phân tài liệu,...).
-- **`POST /api/v1/ocr-fulltext`**: Trích xuất toàn bộ lượng chữ từ hình ảnh bằng phương pháp Hybrid kết hợp Tesseract + VietOCR.
-- **`POST /api/v1/kie`**: Trích xuất thông tin có cấu trúc (KIE) trực tiếp từ string văn bản OCR.
-- **`POST /api/v1/ocr-kie`**: Luồng xử lý toàn trình từ hình ảnh -> OCR -> KIE. Trả về cả kết quả KIE từng trang (kèm theo bounding box) và kết quả gộp cho toàn bộ tài liệu.
-- **`POST /api/v1/auto-summary`**: Nhận một string văn bản để gửi tóm tắt qua local model Ollama.
-- **`POST /api/v1/ocr-auto-summary`**: Endpoint cực kỳ thuận tiện giúp từ lúc chụp ảnh OCR ra đến lúc tóm tắt gộp luôn trong một lượt request API duy nhất.
+1. **`POST /api/v1/preprocess`**: Module xử lý gốc — Căn hướng, xử lý bóng tối, làm phẳng, và Binarize mài mực nhưng chống lem đối với Dấu Đỏ.
+2. **`POST /api/v1/ocr-fulltext`**: Trích xuất Bounding Boxes (`[x,y,w,h]`) + Nhận dạng chữ (PaddleOCR).
+3. **`POST /api/v1/kie`**: Bóc tách KIE lai (Regex + LLM) hỗ trợ Template Động, kết nối Tọa độ Đảo ngược (Spatial Bbox Reverse-Mapping).
+4. **`POST /api/v1/split`**: *(Tích hợp Nội suy)* Nhận đầu vào batch OCR để chẻ dọc bộ tài liệu khổng lồ thành array của các Folder File nhỏ hơn + xuất JSON mục lục.
+5. **`POST /api/v1/export-pdf`**: *(Tích hợp Searchable PDF)* Đẩy Ảnh + OCR Lines vào để lấy về Object File PDF/A 2 layer chuẩn mực.
 
-Bạn nên xem trực tiếp qua giao diện Swagger/OpenAPI tại địa chỉ `http://localhost:8000/docs` ngay khi server vừa bật xong. Đây là nơi bạn sẽ thấy được chi tiết cấu trúc Request nhằm tùy biến bật/tắt mọi tính năng mạnh mẽ khác (như `preserve_red_stamp` hay `shadow_removal`).
+---
 
-## Kiểm Thử (Testing)
-
-Dự án có đi kèm các quy trình kiểm thử hoàn chỉnh với `pytest`, cho phép bạn thử nghiệm nhanh chóng cả Core Services lẫn các API Endpoints.
-
-```bash
-pytest
-```
+## 🧭 Lộ trình phát triển tiếp theo (Next Steps)
+- Tách luồng Fast API ra luồng Background Job hàng đợi sử dụng `Celery` + `Redis` nhằm gánh chịu các bản án / tài liệu nặng 1000 page siêu khổng lồ mà không bị HTTP Timeout.
+- Triển khai **Feedback API** trỏ vào SQLite Database nhằm chuẩn bị sẵn data huấn luyện ngược (Incremental Learning/Human in the Loop) sau khi end user điều chỉnh ở lưới UI Frontend.
