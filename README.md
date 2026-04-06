@@ -2,7 +2,7 @@
 
 A production-grade Document Intelligence and Pre-processing software stack, utilizing state-of-the-art Artificial Intelligence to extract complex Vietnamese administrative and legal documents and produce a finalized archival format.
 
-## 🚀 Breakthrough Features
+## Breakthrough Features
 
 The project has recently undergone a major architectural overhaul, transitioning from a simple PDF parser into a full-scale Document Intelligence System:
 
@@ -24,7 +24,7 @@ The project has recently undergone a major architectural overhaul, transitioning
 
 ---
 
-## 🛠️ Installation Sequence
+## Installation Sequence
 
 ### 1. Environmental Requirements
 - **Python 3.9+** (Recommended).
@@ -59,6 +59,6 @@ Access the **Swagger Docs: `http://localhost:8000/docs`** to Test the entire Pip
 
 ---
 
-## 🧭 Roadmap (Next Steps)
+## Roadmap (Next Steps)
 - Segregate the Fast API engine into a dedicated Background Job queue using `Celery` + `Redis` to withstand massive 1000-page document batch loads without falling victim to HTTP Timeouts.
 - Deploy a **Feedback API** pointed at a localized SQLite Database to gather structured Ground-Truth Data adjustments directly from end UI users, establishing a powerful Human-in-the-Loop Incremental Learning architecture.
