@@ -176,12 +176,25 @@ def adaptive_binarize(
 
 
 def preprocess_image(image_bgr: np.ndarray, options: PreprocessOptions) -> np.ndarray:
+<<<<<<< HEAD
+    working_image = image_bgr.copy()
+    if options.deskew:
+        working_image = deskew_image(working_image)
+
+    if options.auto_crop:
+        scanned = run_document_scanner(working_image)
+        processed_color = scanned["color"]
+        binary_bgr = cv2.cvtColor(scanned["binary"], cv2.COLOR_GRAY2BGR)
+    else:
+        processed_color = working_image
+=======
     if options.auto_crop or options.deskew:
         scanned = run_document_scanner(image_bgr)
         processed_color = scanned["color"]
         binary_bgr = cv2.cvtColor(scanned["binary"], cv2.COLOR_GRAY2BGR)
     else:
         processed_color = image_bgr.copy()
+>>>>>>> fa883a38ced3be0325d8d4a97f8c1c11e446b43c
         binary_bgr = cv2.cvtColor(
             cv2.adaptiveThreshold(
                 cv2.cvtColor(processed_color, cv2.COLOR_BGR2GRAY),
@@ -198,6 +211,14 @@ def preprocess_image(image_bgr: np.ndarray, options: PreprocessOptions) -> np.nd
         processed_color = remove_shadows(processed_color)
     if options.remove_yellow_stains:
         processed_color = remove_yellow_stains(processed_color)
+<<<<<<< HEAD
+
+    # Preserve a stamp-aware reference before denoise because heavy denoise can
+    # suppress red-channel cues and make stamp masking unstable.
+    stamp_reference = processed_color.copy()
+
+=======
+>>>>>>> fa883a38ced3be0325d8d4a97f8c1c11e446b43c
     if options.denoise:
         processed_color = denoise_image(processed_color)
 
@@ -207,14 +228,22 @@ def preprocess_image(image_bgr: np.ndarray, options: PreprocessOptions) -> np.nd
     if not options.preserve_red_stamp:
         return binary_bgr
 
+<<<<<<< HEAD
+    red_mask = get_red_stamp_mask(stamp_reference)
+=======
     red_mask = get_red_stamp_mask(processed_color)
+>>>>>>> fa883a38ced3be0325d8d4a97f8c1c11e446b43c
     red_mask = cv2.dilate(
         red_mask,
         cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)),
         iterations=1,
     )
     red_mask_3c = cv2.cvtColor(red_mask, cv2.COLOR_GRAY2BGR)
+<<<<<<< HEAD
+    preserved = np.where(red_mask_3c > 0, stamp_reference, binary_bgr)
+=======
     preserved = np.where(red_mask_3c > 0, processed_color, binary_bgr)
+>>>>>>> fa883a38ced3be0325d8d4a97f8c1c11e446b43c
     return preserved.astype(np.uint8)
 
 

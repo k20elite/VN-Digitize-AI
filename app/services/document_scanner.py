@@ -230,11 +230,26 @@ def _interactive_adjust_corners(
         elif event == cv2.EVENT_LBUTTONUP:
             drag_state["idx"] = None
 
+<<<<<<< HEAD
+    window_created = False
+    try:
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        initial_w = min(1200, image_bgr.shape[1])
+        initial_h = min(900, image_bgr.shape[0])
+        cv2.resizeWindow(window_name, initial_w, initial_h)
+        cv2.setMouseCallback(window_name, on_mouse)
+        window_created = True
+    except cv2.error:
+        # HighGUI is unavailable (e.g. headless environment). Keep auto corners.
+        return points
+
+=======
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     initial_w = min(1200, image_bgr.shape[1])
     initial_h = min(900, image_bgr.shape[0])
     cv2.resizeWindow(window_name, initial_w, initial_h)
     cv2.setMouseCallback(window_name, on_mouse)
+>>>>>>> fa883a38ced3be0325d8d4a97f8c1c11e446b43c
     try:
         while True:
             cv2.imshow(window_name, draw())
@@ -247,7 +262,12 @@ def _interactive_adjust_corners(
                 points[:] = original_points
                 break
     finally:
+<<<<<<< HEAD
+        if window_created:
+            cv2.destroyWindow(window_name)
+=======
         cv2.destroyWindow(window_name)
+>>>>>>> fa883a38ced3be0325d8d4a97f8c1c11e446b43c
 
     return points
 

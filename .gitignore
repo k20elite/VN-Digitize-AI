@@ -1,3 +1,25 @@
+<<<<<<< HEAD
+.venv/
+.pytest_cache/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.coverage
+htmlcov/
+data/raw/**
+data/preprocessed/**
+data/qa_sessions/**
+data/archive/**
+data/exported/**
+data/feedback.json
+# Optional: uncomment for clean source-code handover (exclude learned lexicon)
+# data/models/incremental_lexicon.json
+deepdoc_vietocr/log/*.log
+deepdoc_vietocr/onnx/.cache/**
+deepdoc_vietocr/conf/private.pem
+docs/
+=======
 # Python
 __pycache__/
 *.py[cod]
@@ -32,3 +54,4 @@ archive.zip
 
 # External reference repo (not part of deliverable)
 OpenCV-Document-Scanner/
+>>>>>>> fa883a38ced3be0325d8d4a97f8c1c11e446b43c

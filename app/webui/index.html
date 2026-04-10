@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Số hóa OCR - 7 bước</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fb; color: #111; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+    h1 { margin: 4px 0 10px; font-size: 24px; }
+    .subtitle { color: #444; margin-bottom: 14px; }
+    .card { background: #fff; border: 1px solid #dbe1ea; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+    .step-title { font-weight: 700; margin-bottom: 10px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    .row label { font-size: 13px; min-width: 120px; }
+    input, select, button, textarea { font-size: 13px; padding: 8px; border-radius: 8px; border: 1px solid #cfd8e5; }
+    button { cursor: pointer; background: #0b5ed7; color: #fff; border: none; }
+    button.secondary { background: #6c757d; }
+    button.success { background: #198754; }
+    button.warn { background: #dc3545; }
+    pre { background: #0b1220; color: #d8e6ff; padding: 10px; border-radius: 8px; overflow: auto; max-height: 260px; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .image-wrap { position: relative; border: 1px solid #ced6e0; border-radius: 8px; overflow: hidden; background: #fff; min-height: 220px; }
+    .image-wrap img { width: 100%; display: block; }
+    .image-wrap canvas { position: absolute; left: 0; top: 0; pointer-events: none; }
+    .field-item { border: 2px solid #ddd; border-radius: 8px; padding: 8px; margin-bottom: 8px; background: #fff; }
+    .field-item.red { border-color: #dc3545; background: #fff5f6; }
+    .field-item.yellow { border-color: #f0ad00; background: #fffced; }
+    .muted { color: #666; font-size: 12px; }
+    .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SỐ HÓA OCR (7 BƯỚC)</h1>
+    <div class="subtitle">UI đơn giản để chạy full pipeline, in kết quả và log để debug.</div>
+
+    <div class="card">
+      <div class="step-title">Bước 1 - Scan & Tải lên</div>
+      <div class="row">
+        <label>Nguồn:</label>
+        <select id="scanSource">
+          <option value="upload">Upload</option>
+          <option value="scanner">Scanner</option>
+        </select>
+        <label>DPI:</label><input id="dpi" type="number" value="300" />
+        <label>Màu:</label>
+        <select id="colorMode">
+          <option value="color">color</option>
+          <option value="grayscale">grayscale</option>
+          <option value="bw">bw</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Chọn file:</label>
+        <input id="step1Files" type="file" multiple />
+        <button id="btnStep1">Chạy Bước 1</button>
+      </div>
+      <pre id="outStep1"></pre>
+    </div>
+
+    <div class="card">
+      <div class="step-title">Bước 2 - Tiền xử lý ảnh</div>
+      <div class="grid">
+        <div class="row"><label><input id="optDeskew" type="checkbox" checked /> Deskew</label></div>
+        <div class="row"><label><input id="optAutoCrop" type="checkbox" checked /> Auto crop</label></div>
+        <div class="row"><label><input id="optShadow" type="checkbox" checked /> Shadow removal</label></div>
+        <div class="row"><label><input id="optDenoise" type="checkbox" checked /> Denoise</label></div>
+        <div class="row"><label><input id="optYellow" type="checkbox" checked /> Remove yellow stains</label></div>
+        <div class="row"><label><input id="optBlank" type="checkbox" checked /> Remove blank pages</label></div>
+        <div class="row"><label><input id="optBinarize" type="checkbox" /> Binarize</label></div>
+        <div class="row"><label><input id="optStamp" type="checkbox" checked /> Preserve red stamp</label></div>
+      </div>
+      <div class="row"><button id="btnStep2">Chạy Bước 2</button></div>
+      <pre id="outStep2"></pre>
+    </div>
+
+    <div class="card">
+      <div class="step-title">Bước 3 - OCR (Raw OCR text)</div>
+      <div class="row">
+        <label><input id="optHandwriting" type="checkbox" /> Handwriting support</label>
+        <button id="btnStep3">Chạy Bước 3</button>
+      </div>
+      <pre id="outStep3"></pre>
+    </div>
+
+    <div class="card">
+      <div class="step-title">Bước 4 - Bóc tách dữ liệu AI + Bounding box</div>
+      <div class="row"><button id="btnStep4">Chạy Bước 4</button></div>
+      <div class="split">
+        <div class="image-wrap">
+          <img id="previewImage" alt="preview" />
+          <canvas id="bboxCanvas"></canvas>
+        </div>
+        <div>
+          <div id="fieldList"></div>
+          <pre id="outStep4"></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step-title">Bước 4.1 - Detect con dấu/chữ ký (YOLO)</div>
+      <div class="row">
+        <button id="btnDetectYOLO">Detect con dấu/chữ ký (YOLO)</button>
+      </div>
+      <div class="split">
+        <div class="image-wrap">
+          <img id="detectImage" alt="detect preview" />
+          <canvas id="detectCanvas"></canvas>
+        </div>
+        <div>
+          <div id="detectSummary"></div>
+          <pre id="outDetect"></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step-title">Bước 4.2 - Sửa lỗi chính tả (NLP)</div>
+      <div class="row">
+        <label>Raw OCR text:</label>
+      </div>
+      <div class="row">
+        <textarea id="rawOcrText" rows="8" style="width:100%" placeholder="Sẽ tự điền từ Bước 3/4, hoặc bạn dán text vào đây..."></textarea>
+      </div>
+      <div class="row">
+        <button id="btnNlpCorrect">Sửa lỗi chính tả (NLP) + Summary</button>
+      </div>
+      <div class="row">
+        <label>Corrected text:</label>
+      </div>
+      <div class="row">
+        <textarea id="correctedText" rows="8" style="width:100%" readonly></textarea>
+      </div>
+      <div class="row">
+        <label>Summary sau khi sửa lỗi:</label>
+      </div>
+      <div class="row">
+        <textarea id="correctedSummary" rows="4" style="width:100%" readonly></textarea>
+      </div>
+      <pre id="outNlp"></pre>
+    </div>
+
+    <div class="card">
+      <div class="step-title">Bước 5 - QA1 (Split-view + cảnh báo confidence thấp)</div>
+      <div class="row"><button id="btnStep5">Chạy Bước 5</button></div>
+      <div class="split">
+        <div class="image-wrap">
+          <img id="qaImage" alt="qa preview" />
+          <canvas id="qaCanvas"></canvas>
+        </div>
+        <div id="qaFields"></div>
+      </div>
+      <pre id="outStep5"></pre>
+    </div>
+
+    <div class="card">
+      <div class="step-title">Bước 6 - QA2 (Phê duyệt / Từ chối)</div>
+      <div class="row">
+        <label>Lý do:</label><input id="qaReason" type="text" placeholder="Lý do reject (nếu có)" style="min-width: 320px;" />
+        <button class="success" id="btnApprove">Phê duyệt</button>
+        <button class="warn" id="btnReject">Từ chối</button>
+      </div>
+      <pre id="outStep6"></pre>
+    </div>
+
+    <div class="card">
+      <div class="step-title">Bước 7 - Xuất bản (PDF + Download + Archive)</div>
+      <div class="row">
+        <label>Tên file:</label><input id="exportFilename" type="text" value="ui_export.pdf" />
+        <label>PDF/A:</label>
+        <select id="pdfaLevel">
+          <option value="2b">2b</option>
+          <option value="1b">1b</option>
+        </select>
+        <label><input id="mrcFlag" type="checkbox" checked /> MRC-like compression</label>
+      </div>
+      <div class="row">
+        <button id="btnStep7">Xuất bản PDF</button>
+        <button class="secondary" id="btnArchive">Lưu kho</button>
+      </div>
+      <div class="muted">Link tải: <a id="downloadLink" href="#" target="_blank"></a></div>
+      <pre id="outStep7"></pre>
+    </div>
+
+    <div class="card">
+      <div class="step-title">Log debug realtime</div>
+      <pre id="logPanel"></pre>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      step1: null,
+      step2: null,
+      step3: null,
+      step4: null,
+      step5: null,
+      step6: null,
+      step7: null,
+      detect: null,
+      nlp: null,
+      inputPaths: [],
+      processedPaths: [],
+      qaSessionId: null,
+      lastExportPath: null
+    };
+
+    const el = (id) => document.getElementById(id);
+    const pretty = (obj) => JSON.stringify(obj, null, 2);
+
+    function addLog(level, message, payload) {
+      const timestamp = new Date().toISOString();
+      const line = `[${timestamp}] [${level}] ${message}`;
+      const panel = el("logPanel");
+      panel.textContent += line + "\n";
+      if (payload !== undefined) {
+        panel.textContent += pretty(payload) + "\n";
+      }
+      panel.scrollTop = panel.scrollHeight;
+      console.log(line, payload);
+    }
+
+    async function apiJson(url, options = {}) {
+      addLog("REQ", `${options.method || "GET"} ${url}`);
+      const resp = await fetch(url, options);
+      const text = await resp.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      addLog("RES", `${resp.status} ${url}`, data);
+      if (!resp.ok) throw new Error(`${resp.status}: ${text}`);
+      return data;
+    }
+
+    function getWorkingPaths() {
+      return state.processedPaths.length ? state.processedPaths : state.inputPaths;
+    }
+
+    function renderBBox(imageId, canvasId, page, fieldMap = {}) {
+      const img = el(imageId);
+      const canvas = el(canvasId);
+      if (!page || !page.input_path) return;
+      img.onload = () => {
+        const scaleX = img.clientWidth / img.naturalWidth;
+        const scaleY = img.clientHeight / img.naturalHeight;
+        canvas.width = img.clientWidth;
+        canvas.height = img.clientHeight;
+        canvas.style.width = `${img.clientWidth}px`;
+        canvas.style.height = `${img.clientHeight}px`;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (const line of (page.lines || [])) {
+          const [x, y, w, h] = line.bbox || [0, 0, 0, 0];
+          ctx.strokeStyle = "rgba(30,144,255,0.7)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x * scaleX, y * scaleY, w * scaleX, h * scaleY);
+        }
+
+        Object.entries(fieldMap).forEach(([fieldName, field]) => {
+          if (!field || !field.field_bbox) return;
+          const [x, y, w, h] = field.field_bbox;
+          const conf = Number(field.confidence || 0);
+          ctx.strokeStyle = conf < 0.6 ? "rgba(220,53,69,0.95)" : conf < 0.8 ? "rgba(240,173,0,0.95)" : "rgba(40,167,69,0.9)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x * scaleX, y * scaleY, w * scaleX, h * scaleY);
+          ctx.fillStyle = "rgba(0,0,0,0.75)";
+          ctx.fillRect(x * scaleX, y * scaleY - 16, 120, 14);
+          ctx.fillStyle = "#fff";
+          ctx.font = "10px Arial";
+          ctx.fillText(`${fieldName} ${(conf * 100).toFixed(1)}%`, x * scaleX + 2, y * scaleY - 5);
+        });
+      };
+      img.src = `/api/v1/debug/file?path=${encodeURIComponent(page.input_path)}`;
+    }
+
+    function collectFieldMap(documentObj) {
+      if (!documentObj) return {};
+      const core = {
+        so_van_ban: documentObj.so_van_ban,
+        ngay_ban_hanh: documentObj.ngay_ban_hanh,
+        co_quan_ban_hanh: documentObj.co_quan_ban_hanh,
+        loai_van_ban: documentObj.loai_van_ban,
+        trich_yeu: documentObj.trich_yeu
+      };
+      return Object.assign(core, documentObj.custom_fields || {});
+    }
+
+    function updateRawTextFromOcrPages(pages) {
+      if (!pages || !pages.length) return;
+      const merged = pages.map(p => p.full_text || "").filter(Boolean).join("\n\n").trim();
+      if (merged) el("rawOcrText").value = merged;
+    }
+
+    async function summarizeText(text) {
+      return apiJson("/api/v1/auto-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+    }
+
+    function renderDetectionBBox(page) {
+      const img = el("detectImage");
+      const canvas = el("detectCanvas");
+      if (!page || !page.input_path) return;
+      img.onload = () => {
+        const scaleX = img.clientWidth / img.naturalWidth;
+        const scaleY = img.clientHeight / img.naturalHeight;
+        canvas.width = img.clientWidth;
+        canvas.height = img.clientHeight;
+        canvas.style.width = `${img.clientWidth}px`;
+        canvas.style.height = `${img.clientHeight}px`;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (const det of (page.detections || [])) {
+          const [x, y, w, h] = det.bbox || [0, 0, 0, 0];
+          const isStamp = det.label === "stamp";
+          ctx.strokeStyle = isStamp ? "rgba(220,53,69,0.95)" : "rgba(25,135,84,0.95)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x * scaleX, y * scaleY, w * scaleX, h * scaleY);
+          ctx.fillStyle = "rgba(0,0,0,0.75)";
+          ctx.fillRect(x * scaleX, y * scaleY - 16, 140, 14);
+          ctx.fillStyle = "#fff";
+          ctx.font = "10px Arial";
+          const confPct = (Number(det.confidence || 0) * 100).toFixed(1);
+          ctx.fillText(`${det.label} ${confPct}%`, x * scaleX + 2, y * scaleY - 5);
+        }
+      };
+      img.src = `/api/v1/debug/file?path=${encodeURIComponent(page.input_path)}`;
+    }
+
+    el("btnStep1").onclick = async () => {
+      try {
+        const source = el("scanSource").value;
+        const fd = new FormData();
+        fd.append("source", source);
+        fd.append("dpi", el("dpi").value || "300");
+        fd.append("color_mode", el("colorMode").value || "color");
+        if (source === "upload") {
+          for (const file of el("step1Files").files) fd.append("files", file);
+        }
+        const data = await apiJson("/api/v1/scan-upload", { method: "POST", body: fd });
+        state.step1 = data;
+        state.inputPaths = data.saved_pages || [];
+        el("outStep1").textContent = pretty(data);
+      } catch (err) {
+        el("outStep1").textContent = String(err);
+      }
+    };
+
+    el("btnStep2").onclick = async () => {
+      try {
+        const paths = getWorkingPaths();
+        if (!paths.length) throw new Error("Chưa có input paths từ Bước 1.");
+        const payload = {
+          input_paths: paths,
+          options: {
+            deskew: el("optDeskew").checked,
+            auto_crop: el("optAutoCrop").checked,
+            shadow_removal: el("optShadow").checked,
+            denoise: el("optDenoise").checked,
+            remove_yellow_stains: el("optYellow").checked,
+            binarize: el("optBinarize").checked,
+            preserve_red_stamp: el("optStamp").checked,
+            remove_blank_pages: el("optBlank").checked,
+            blank_ratio_threshold: 0.006
+          }
+        };
+        const data = await apiJson("/api/v1/preprocess", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        state.step2 = data;
+        state.processedPaths = (data.results || []).filter(x => !x.skipped_as_blank && x.output_path).map(x => x.output_path);
+        el("outStep2").textContent = pretty(data);
+      } catch (err) {
+        el("outStep2").textContent = String(err);
+      }
+    };
+
+    el("btnStep3").onclick = async () => {
+      try {
+        const paths = getWorkingPaths();
+        if (!paths.length) throw new Error("Chưa có input paths.");
+        const data = await apiJson("/api/v1/ocr-fulltext", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input_paths: paths,
+            handwriting_support: el("optHandwriting").checked
+          })
+        });
+        state.step3 = data;
+        el("outStep3").textContent = pretty(data);
+        updateRawTextFromOcrPages(data.pages || []);
+      } catch (err) {
+        el("outStep3").textContent = String(err);
+      }
+    };
+
+    el("btnStep4").onclick = async () => {
+      try {
+        const paths = getWorkingPaths();
+        if (!paths.length) throw new Error("Chưa có input paths.");
+        const data = await apiJson("/api/v1/extract-fields", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input_paths: paths,
+            handwriting_support: el("optHandwriting").checked
+          })
+        });
+        state.step4 = data;
+        el("outStep4").textContent = pretty(data);
+
+        const documentFields = collectFieldMap(data.document);
+        const list = Object.entries(documentFields).map(([k, v]) => {
+          const conf = Number(v?.confidence || 0);
+          return `<div class="field-item">
+            <b>${k}</b><br/>
+            value: ${v?.value ?? "(null)"}<br/>
+            confidence: ${(conf * 100).toFixed(1)}%<br/>
+            bbox: ${v?.field_bbox ? JSON.stringify(v.field_bbox) : "null"}
+          </div>`;
+        }).join("");
+        el("fieldList").innerHTML = list;
+
+        const firstPage = (data.pages || [])[0];
+        renderBBox("previewImage", "bboxCanvas", firstPage, documentFields);
+        updateRawTextFromOcrPages(data.pages || []);
+      } catch (err) {
+        el("outStep4").textContent = String(err);
+      }
+    };
+
+    el("btnDetectYOLO").onclick = async () => {
+      try {
+        const paths = getWorkingPaths();
+        if (!paths.length) throw new Error("Chưa có input paths (chạy Bước 1/2 trước).");
+        const data = await apiJson("/api/v1/postprocess-check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input_paths: paths,
+            handwriting_support: el("optHandwriting").checked
+          })
+        });
+        state.detect = data;
+        el("outDetect").textContent = pretty(data);
+
+        const pages = data.pages || [];
+        const total = data.summary?.total_pages ?? pages.length;
+        const stamps = data.summary?.pages_with_stamp ?? 0;
+        const signs = data.summary?.pages_with_signature ?? 0;
+        el("detectSummary").innerHTML = `
+          <div class="field-item">
+            <b>Kết quả YOLO</b><br/>
+            total_pages: ${total}<br/>
+            pages_with_stamp: ${stamps}<br/>
+            pages_with_signature: ${signs}
+          </div>
+        `;
+
+        const pageWithDet = pages.find(p => (p.detections || []).length > 0) || pages[0];
+        renderDetectionBBox(pageWithDet);
+      } catch (err) {
+        el("outDetect").textContent = String(err);
+      }
+    };
+
+    el("btnNlpCorrect").onclick = async () => {
+      try {
+        const text = (el("rawOcrText").value || "").trim();
+        if (!text) throw new Error("Chưa có raw OCR text để sửa.");
+        const correctedData = await apiJson("/api/v1/nlp-correct", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text })
+        });
+        const correctedText = (correctedData.corrected || "").trim();
+        if (!correctedText) throw new Error("NLP trả về text rỗng, không thể tóm tắt.");
+
+        const summaryData = await summarizeText(correctedText);
+        state.nlp = {
+          original: correctedData.original,
+          corrected: correctedText,
+          summary: summaryData.summary,
+          model: summaryData.model
+        };
+        el("correctedText").value = correctedText;
+        el("correctedSummary").value = summaryData.summary || "";
+        el("outNlp").textContent = pretty({
+          original: correctedData.original,
+          corrected: correctedText,
+          summary: summaryData.summary,
+          model: summaryData.model
+        });
+      } catch (err) {
+        el("outNlp").textContent = String(err);
+      }
+    };
+
+    el("btnStep5").onclick = async () => {
+      try {
+        const paths = getWorkingPaths();
+        if (!paths.length) throw new Error("Chưa có input paths.");
+        const data = await apiJson("/api/v1/qa1/review-create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input_paths: paths,
+            handwriting_support: el("optHandwriting").checked
+          })
+        });
+        state.step5 = data;
+        state.qaSessionId = data.session_id;
+        el("outStep5").textContent = pretty(data);
+
+        const fields = collectFieldMap(data.document);
+        const lowMap = {};
+        for (const item of (data.split_view?.low_confidence_fields || [])) lowMap[item.field_name] = item.highlight_color;
+        const qaHtml = Object.entries(fields).map(([k, v]) => {
+          const cls = lowMap[k] || "";
+          return `<div class="field-item ${cls}">
+            <b>${k}</b>
+            <div class="muted">conf ${(Number(v?.confidence || 0) * 100).toFixed(1)}% | bbox ${v?.field_bbox ? JSON.stringify(v.field_bbox) : "null"}</div>
+            <textarea id="qa_${k}" rows="2" style="width:100%">${v?.value || ""}</textarea>
+          </div>`;
+        }).join("");
+        el("qaFields").innerHTML = qaHtml;
+
+        const firstPage = (data.pages || [])[0];
+        renderBBox("qaImage", "qaCanvas", firstPage, fields);
+      } catch (err) {
+        el("outStep5").textContent = String(err);
+      }
+    };
+
+    el("btnApprove").onclick = async () => {
+      try {
+        if (!state.qaSessionId) throw new Error("Chưa có session QA1.");
+        const data = await apiJson("/api/v1/qa2/decision", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: state.qaSessionId,
+            action: "approve",
+            reason: el("qaReason").value || null
+          })
+        });
+        state.step6 = data;
+        el("outStep6").textContent = pretty(data);
+      } catch (err) {
+        el("outStep6").textContent = String(err);
+      }
+    };
+
+    el("btnReject").onclick = async () => {
+      try {
+        if (!state.qaSessionId) throw new Error("Chưa có session QA1.");
+        const data = await apiJson("/api/v1/qa2/decision", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: state.qaSessionId,
+            action: "reject",
+            reason: el("qaReason").value || "Reject from UI",
+            rollback_stage: "QA1"
+          })
+        });
+        state.step6 = data;
+        el("outStep6").textContent = pretty(data);
+      } catch (err) {
+        el("outStep6").textContent = String(err);
+      }
+    };
+
+    el("btnStep7").onclick = async () => {
+      try {
+        const pages = state.step4?.pages || state.step5?.pages;
+        if (!pages || !pages.length) throw new Error("Chưa có dữ liệu trang để export (chạy Bước 4 hoặc 5 trước).");
+        const data = await apiJson("/api/v1/export-pdf-searchable", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pages,
+            output_filename: el("exportFilename").value || "ui_export.pdf",
+            pdfa_level: el("pdfaLevel").value,
+            mrc_compression: el("mrcFlag").checked,
+            strict_pdfa: false
+          })
+        });
+        state.step7 = data;
+        state.lastExportPath = data.output_path;
+        el("outStep7").textContent = pretty(data);
+        el("downloadLink").href = data.download_url;
+        el("downloadLink").textContent = data.download_url;
+      } catch (err) {
+        el("outStep7").textContent = String(err);
+      }
+    };
+
+    el("btnArchive").onclick = async () => {
+      try {
+        if (!state.lastExportPath) throw new Error("Chưa có output PDF để lưu kho.");
+        const data = await apiJson("/api/v1/archive/store", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input_path: state.lastExportPath,
+            document_id: `ui-${Date.now()}`
+          })
+        });
+        el("outStep7").textContent = `${el("outStep7").textContent}\n\nArchive:\n${pretty(data)}`;
+      } catch (err) {
+        el("outStep7").textContent = String(err);
+      }
+    };
+  </script>
+</body>
+</html>

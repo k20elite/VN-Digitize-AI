@@ -104,6 +104,56 @@ def test_binarize_preserves_red_stamp_pixels():
     assert int(np.count_nonzero(red_mask)) > 300
 
 
+<<<<<<< HEAD
+def test_binarize_preserves_red_stamp_with_denoise_enabled():
+    image = np.full((260, 260, 3), 255, dtype=np.uint8)
+    # Stamp-like red ring with small noisy border to simulate real scan.
+    cv2.circle(image, (130, 130), 45, (0, 0, 220), thickness=4)
+    noise = np.random.default_rng(7).integers(0, 20, size=image.shape, dtype=np.uint8)
+    image = cv2.subtract(image, noise)
+
+    options = PreprocessOptions(
+        deskew=False,
+        auto_crop=False,
+        shadow_removal=False,
+        denoise=True,
+        remove_yellow_stains=False,
+        binarize=True,
+        preserve_red_stamp=True,
+        remove_blank_pages=False,
+    )
+    processed = preprocess_image(image, options)
+    red_mask = (processed[:, :, 2] > 150) & (processed[:, :, 1] < 140)
+    assert int(np.count_nonzero(red_mask)) > 120
+
+
+def test_preserve_red_stamp_uses_pre_denoise_reference(monkeypatch):
+    image = np.full((180, 180, 3), 255, dtype=np.uint8)
+    cv2.rectangle(image, (50, 50), (120, 120), (0, 0, 220), thickness=-1)
+
+    # Simulate an aggressive denoise implementation that wipes color cues.
+    monkeypatch.setattr(
+        "app.services.preprocessing.denoise_image",
+        lambda img: np.full_like(img, 255),
+    )
+
+    options = PreprocessOptions(
+        deskew=False,
+        auto_crop=False,
+        shadow_removal=False,
+        denoise=True,
+        remove_yellow_stains=False,
+        binarize=True,
+        preserve_red_stamp=True,
+        remove_blank_pages=False,
+    )
+    processed = preprocess_image(image, options)
+    red_mask = (processed[:, :, 2] > 150) & (processed[:, :, 1] < 140)
+    assert int(np.count_nonzero(red_mask)) > 200
+
+
+=======
+>>>>>>> fa883a38ced3be0325d8d4a97f8c1c11e446b43c
 def test_shadow_removal_flattens_background():
     h, w = 260, 260
     x = np.linspace(40, 210, w, dtype=np.float32)
@@ -125,3 +175,28 @@ def test_shadow_removal_flattens_background():
     original_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     processed_gray = cv2.cvtColor(processed, cv2.COLOR_BGR2GRAY)
     assert float(np.std(processed_gray)) < float(np.std(original_gray))
+<<<<<<< HEAD
+
+
+def test_preprocess_image_applies_deskew_when_enabled(monkeypatch):
+    image = np.full((120, 160, 3), 255, dtype=np.uint8)
+    calls = {"deskew": 0}
+
+    def fake_deskew(img):
+        calls["deskew"] += 1
+        return img
+
+    monkeypatch.setattr("app.services.preprocessing.deskew_image", fake_deskew)
+    options = PreprocessOptions(
+        deskew=True,
+        auto_crop=False,
+        shadow_removal=False,
+        denoise=False,
+        remove_yellow_stains=False,
+        binarize=False,
+        remove_blank_pages=False,
+    )
+    _ = preprocess_image(image, options)
+    assert calls["deskew"] == 1
+=======
+>>>>>>> fa883a38ced3be0325d8d4a97f8c1c11e446b43c

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import json
+<<<<<<< HEAD
+import sys
+=======
+>>>>>>> fa883a38ced3be0325d8d4a97f8c1c11e446b43c
 from pathlib import Path
 
 import numpy as np
@@ -13,6 +17,13 @@ from app.services.summarizer import summarize_with_ollama
 
 
 def main() -> None:
+<<<<<<< HEAD
+    # Ensure Vietnamese text can be printed on Windows terminals.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+=======
+>>>>>>> fa883a38ced3be0325d8d4a97f8c1c11e446b43c
     input_image_path = "image.png"
     output_dir = Path("data") / "manual_preprocess"
     transform_mode = "manual"  # "manual" or "auto"
